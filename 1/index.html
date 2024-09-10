@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CS180 Project 1</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Arial', sans-serif;
+            background-color: #f4f4f9;
+            color: #333;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .content-container {
+            max-width: 800px;
+            margin: 0 auto;
+            text-align: center;
+        }
+
+        h1, h2, h3 {
+            margin-bottom: 20px;
+            color: #333;
+        }
+
+        h1 {
+            font-size: 2.5em;
+            font-weight: bold;
+        }
+
+        h2 {
+            font-size: 2em;
+            font-weight: 600;
+        }
+
+        h3 {
+            font-size: 1.5em;
+            font-weight: 400;
+            margin-bottom: 30px;
+        }
+
+        p {
+            font-size: 1.1em;
+            line-height: 1.6;
+            margin-bottom: 30px;
+        }
+
+        img {
+            max-width: 100%;
+            height: auto;
+            display: block;
+            margin: 30px auto;
+            border-radius: 8px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        }
+        /* Ripped off of W3 Schools for styling the code */
+        code {
+            font-family: Consolas,"courier new";
+            color: rgb(28, 168, 12);
+            padding: 2px;
+            font-size: 105%;
+        }
+        sup {
+            vertical-align: super;
+            font-size: x-small;
+        }
+
+        @media (max-width: 768px) {
+            .content-container {
+                padding: 0 20px;
+            }
+
+            h1 {
+                font-size: 2em;
+            }
+
+            h2 {
+                font-size: 1.75em;
+            }
+
+            p {
+                font-size: 1em;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="content-container">
+        <h1>CS180 Project 1</h1>
+        <h2>Images of the Russian Empire:
+            Colorizing the Prokudin-Gorskii Photo Collection</h2>
+        <h3>Kevin Yee</h3>
+        <h2>Overview</h2>
+        <p>This project (in our quest to beome friends with each and every single pixel on the screen) takes an image, splits it in three,
+        and performes alignment on the three color channels of the image (B G R) to produce a color image.
+        </p>
+        
+        <h2>Methods</h2>
+        <p>So the lion's share of this project revolves around how to align the images in an efficient manner. In order to perform alignment, I decided to use the
+            simplest method of comparison (to quote the spec) "the L2 norm also known as the Euclidean Distance which is simply sqrt(sum(sum((image1-image2).^2)))".
+            This is shown quite simply in my code as:
+        </p>
+
+        <p><code>score = np.sum((base_channel_cropped - shifted_channel_cropped) ** 2)</code></p>
+        <p>Where <code>base_channel_cropped</code> and <code>shifted_channel_cropped</code> are the channels that are being aligned. The square root of the function
+        was not taken as it's not technically required, as all I'm doing is comparing which value is greater, and the root of a larger number is larger than the root of a smaller number <sup>citation needed</sup>
+        </p>
+
+        <p>Of course, there is a good amount of work that must be done to actually align the image in the first place, which is essentially done by iterating over every
+            single possible alignment, or to quote directly: "to exhaustively search over a window of possible displacements (say [-15,15] pixels)". This is quite expensive over large images though,
+            so an image pyramid was used, where it basically takes the image, and downscales it to be half the size it was originally. After finding some optimal offset on the downsized image, the lower levels return
+            the optiimal offset that it found, which upper levels then use as a starting point and begin their search once more over a more refined (smaller) search range.
+        </p>
+
+        <p>Essentially, what the pyramid does is:</p>
+        <img src="pseudo_pyramid.png" alt="Pyramid Align Code"> 
+        <p>With this, the images can be aligned and stacked to be in full color.</p>
+
+        <h2>Problems</h2>
+        <p>One of the main problems I had was alignment, specifically having things be (mostly) aligned, with some constant offset due to the borders. After much mashing my head into a wall, I re-read the spec,
+            and took the advice to "pre-crop" some of the images before actually running the L2 norm on them so that the norm wouldn't be run on the bordering things, such that it wouldn't rate the borders very highly and misalign them.
+        </p>
+
+        <b><h1>Results:</h1></b>
+
+        <h2>Image: cathedral.jpg</h2>
+        <img src="cathedral_output_l2.jpg" alt="cathedral image">
+        <p>Green Offset (x, y): (5, 2)
+            Red Offset (x, y): (12, 3)</p>
+
+        <h2>Image: church.tif</h2>
+        <img src="church_output_l2.jpg" alt="church image">
+        <p>Green Offset (x, y): (25, 4)
+            Red Offset (x, y): (58, -4)</p>
+
+        <h2>Image: emir.tif</h2>
+        <img src="emir_output_l2.jpg" alt="emir image">
+        <p>Green Offset (x, y): (49, 24)
+            Red Offset (x, y): (107, 40)</p>
+
+        <h2>Image: harvesters.tif</h2>
+        <img src="harvesters_output_l2.jpg" alt="harvesters image">
+        <p>Green Offset (x, y): (60, 17)
+            Red Offset (x, y): (124, 14)</p>
+
+        <h2>Image: icon.jpg</h2>
+        <img src="icon_output_l2.jpg" alt="icon image">
+        <p>Green Offset (x, y): (42, 17)
+            Red Offset (x, y): (90, 23)</p>
+
+        <h2>Image: lady.tif</h2>
+        <img src="lady_output_l2.jpg" alt="lady image">
+        <p>Green Offset (x, y): (56, 9)
+            Red Offset (x, y): (120, 13)</p>
+
+        <h2>Image: melons.tif</h2>
+        <img src="melons_output_l2.jpg" alt="melons image">
+        <p>Green Offset (x, y): (80, 10)
+            Red Offset (x, y): (177, 13)</p>
+
+        <h2>Image: monastery.jpg</h2>
+        <img src="monastery_output_l2.jpg" alt="monastery image">
+        <p>Green Offset (x, y): (-3, 2)
+            Red Offset (x, y): (3, 2)</p>
+
+        <h2>Image: onion_church.tif</h2>
+        <img src="onion_church_output_l2.jpg" alt="onion church image">
+        <p>Green Offset (x, y): (51, 26)
+            Red Offset (x, y): (107, 35)</p>
+
+        <h2>Image: sculpture.tif</h2>
+        <img src="sculpture_output_l2.jpg" alt="sculpture image">
+        <p>Green Offset (x, y): (33, -11)
+            Red Offset (x, y): (140, -26)</p>
+
+        <h2>Image: self_portrait.tif</h2>
+        <img src="self_portrait_output_l2.jpg" alt="self portrait image">
+        <p>Green Offset (x, y): (78, 29)
+            Red Offset (x, y): (176, 37)</p>
+
+        <h2>Image: three_generations.tif</h2>
+        <img src="three_generations_output_l2.jpg" alt="three generations image">
+        <p>Green Offset (x, y): (54, 12)
+            Red Offset (x, y): (111, 9)</p>
+
+        <h2>Image: tobolsk.jpg</h2>
+        <img src="tobolsk_output_l2.jpg" alt="tobolsk image">
+        <p>Green Offset (x, y): (3, 3)
+            Red Offset (x, y): (6, 3)</p>
+
+        <h2>Image: train.tif</h2>
+        <img src="train_output_l2.jpg" alt="train image">
+        <p>Green Offset (x, y): (41, 2)
+            Red Offset (x, y): (85, 29)</p>
+
+        <h2>Image: Sirenʹ.tif</h2>
+        <img src="Sirenʹ_output_l2.jpg" alt="train image">
+        <p>Green Offset (x, y): (49, -6)
+            Red Offset (x, y): (96, -24)</p>
+
+        <h2>Image: Cheremukha.tif</h2>
+        <img src="Cheremukha_output_l2.jpg" alt="train image">
+        <p>Green Offset (x, y): (26, 18)
+            Red Offset (x, y): (122, 34)</p>
+
+        <h2>Image: V Malorossīi.tif</h2>
+        <img src="V Malorossīi_output_l2.jpg" alt="train image">
+        <p>Green Offset (x, y): (-30, -93)
+            Red Offset (x, y): (22, -82)</p>
+
+
+    </div>
+
+</body>
+</html>
