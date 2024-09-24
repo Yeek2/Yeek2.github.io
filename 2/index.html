@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CS180 Project 2</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Arial', sans-serif;
+            background-color: #f4f4f9;
+            color: #333;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .content-container {
+            margin: 0 auto;
+            text-align: center;
+        }
+
+        h1, h2, h3 {
+            margin-bottom: 20px;
+            color: #333;
+        }
+
+        h1 {
+            font-size: 2.5em;
+            font-weight: bold;
+        }
+
+        h2 {
+            font-size: 2em;
+            font-weight: 600;
+        }
+
+        h3 {
+            font-size: 1.5em;
+            font-weight: 400;
+            margin-bottom: 30px;
+        }
+
+        p {
+            font-size: 1.1em;
+            line-height: 1.6;
+            margin-bottom: 30px;
+        }
+
+        img {
+            max-width: 100%;
+            height: auto;
+            display: block;
+            margin: 30px auto;
+            border-radius: 8px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        }
+        /* Ripped off of W3 Schools for styling the code */
+        code {
+            font-family: Consolas,"courier new";
+            color: rgb(28, 168, 12);
+            padding: 2px;
+            font-size: 105%;
+        }
+        sup {
+            vertical-align: super;
+            font-size: x-small;
+        }
+
+        @media (max-width: 768px) {
+            .content-container {
+                padding: 0 20px;
+            }
+
+            h1 {
+                font-size: 2em;
+            }
+
+            h2 {
+                font-size: 1.75em;
+            }
+
+            p {
+                font-size: 1em;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="content-container">
+        <h1>CS180 Project 2</h1>
+        <h2>Fun with Filters and Frequencies</h2>
+        <h3>Kevin Yee</h3>
+        <h2>Overview</h2>
+        <p>This project (in our quest to beome friends with each and every single pixel on the screen) essentially filters images to bend them to our perceptual whims, mostly using maths, is probably the most apt description I can give of what is going on.
+        </p>
+
+        <h2>Part 1: Fun with Filters</h2>
+        <h3>Part 1.1</h3>
+        <p>To <s>plagerize</s> quote directly from the project webpage: "We will begin by using the humble finite difference as our filter in the x and y directions."</p>
+        <img src="Diff_Op.png" alt="Difference Operator Image">
+        <p>I do this, followed by calculating the gradient magnitude, the formula being:</p>
+        <img src="Gradient_Magnitude.png" alt="Gradient Magnitude Image">
+        <p>With a bit more processing, I "binarize the gradient magnitude image by picking the appropriate threshold" (after taking a few tries), landing on around 0.18 or so (qualitatively assesed)</p>
+        <h3>Part 1.2</h3>
+        <p>For this part, it's pretty similar to the first one, except I basically blur the image before taking the difference and gradient, which should result in a smoother image (which I think it does), and then afterwards, I get the derivative of the gaussian filters, convolve them, followed by grabbing the gradient magnitude.</p>
+        <h2>Part 1 Results:</h2> 
+        <img src="Figure_1.png" alt="1.1 Results">
+        <p>To my eyes, the edge image (rightmost), versus the edge image (gaussian blurred) look slightly different, a few more artifacts here and there, but overall really similar and perhaps a bit more distinct on the derivative one.</p>
+        <p>Here's the derivative of the Gaussian in the x and y directions (respectively)</p>
+        <img src="Figure_2.png" alt="1.2 Results">
+
+        <h2>Part 2: Fun with Frequencies!</h2>
+        <h3>Part 2.1</h3>
+        <p>In Part 2.1, I implemented a low-pass filter by first creating a Gaussian kernel, which smooths the image (like in part 1). Followed by slapping the kernel onto the image with cv2.filter2D. This takes a weighted average of stuff, which basically smooths over high frequencies (like koala brain)</p>
+        <p>To get the resultant image, I took the images generated from the high pass filter and added the higher frequencies multiplied by a constant to the original image to "sharpen" the original image.</p>
+        <h2>Part 2.1 Results:</h2> 
+        <img src="Taj_Majal.png" alt="Taj Majal Image">
+        <img src="Golden_Gate.png" alt="Golden Gate Image">        
+
+        <h3>Part 2.2</h3>
+        <p>For part 2.2, To make a high pass filter, I literally used the inverse of the lowpass filter <code>image - low pass filter</code>, and BAM, combine the two images</p>
+        <img src="FFT.png" alt="Human Cat">        
+        <img src="IWasActing.png" alt="I was acting, or was I?">     
+        <p>Failure image, too much detail/too busy (at least I don't think it looks great)</p>   
+        <img src="Failure.png" alt="John Wick or Not">        
+
+        <p>I wrote spagetti code and tried to "bundle in" FFT with the images, and I didn't really feel like disentangling it, so all images have FFT analysis. My favorit one is probably the I was acting, or was I? meme of happy -> mad</p>
+
+        <h2>Part 2.3-2.4: Multi-resolution Blending and the Oraple journey</h2>
+        <h3>Part 2.3 Gaussian & Laplacian Stacks</h3>
+        <p>So background on this one: Gaussian Stack is basically being continually blurred more and more (without downsampling though), while the Laplacian Stack is basically getting fewer and fewer higher frequencies with each "slab" on the stack by constantly doing low pass filter'n.</p>
+        <h2>Part 2.3/4 Results:</h2> 
+        <img src="Apple_Orange_Stacks.png" alt="Stacks"> 
+        <h3>Part 2.4 MultiResolution Blending</h3>
+        <p>Basically, the stacks are "collapsed" together by adding them, essentially progressively adding together the high frequency details to the lower resolution images.</p>
+        <h2>Part 2.4 Result:</h2> 
+        <img src="Orapple.png" alt="Orapple"> 
+        <img src="kiwi_orange.png" alt="Kiwi Orange"> 
+
+
+
+
+    </div>
+
+</body>
+</html>
