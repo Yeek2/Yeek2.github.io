@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CS180 Project 2</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Arial', sans-serif;
+            background-color: #f4f4f9;
+            color: #333;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .content-container {
+            margin: 0 auto;
+            text-align: center;
+        }
+
+        h1, h2, h3 {
+            margin-bottom: 20px;
+            color: #333;
+        }
+
+        h1 {
+            font-size: 2.5em;
+            font-weight: bold;
+        }
+
+        h2 {
+            font-size: 2em;
+            font-weight: 600;
+        }
+
+        h3 {
+            font-size: 1.5em;
+            font-weight: 400;
+            margin-bottom: 30px;
+        }
+
+        p {
+            font-size: 1.1em;
+            line-height: 1.6;
+            margin-bottom: 30px;
+        }
+
+        img {
+            max-width: 100%;
+            height: auto;
+            display: block;
+            margin: 30px auto;
+            border-radius: 8px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        }
+        /* Ripped off of W3 Schools for styling the code */
+        code {
+            font-family: Consolas,"courier new";
+            color: rgb(28, 168, 12);
+            padding: 2px;
+            font-size: 105%;
+        }
+        sup {
+            vertical-align: super;
+            font-size: x-small;
+        }
+
+        @media (max-width: 768px) {
+            .content-container {
+                padding: 0 20px;
+            }
+
+            h1 {
+                font-size: 2em;
+            }
+
+            h2 {
+                font-size: 1.75em;
+            }
+
+            p {
+                font-size: 1em;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="content-container">
+        <h1>CS180 Project 3</h1>
+        <h2>Face Morphing</h2>
+        <h3>Kevin Yee</h3>
+        <h2>Overview</h2>
+        <p>So in this project, the endgoal is to basically mess with people's faces. (In the never ending persuit to bend each pixel's will to my own)
+        </p>
+
+        <h2>Part 1: Defining Correspondences</h2>
+        <p>So the first thing I did was define matching points (or correspondences) in order to define keypoints for the morph sequence. Eyes to eyes, mouth to mouth, etc. I used the provided tool to do this. I then computed the Delaunay triangluation of the mean by using <code>scipy.spatial import Delaunay</code></p>
+        <p>Quick sidenote, I am not George Clooney or Brad Pitt, however, I very much dislike taking images of myself for privacy reasons.</p> 
+        <img src="Delaunay_Triangulation.png" alt="Triangles Image">
+
+        <h2>Part 2: Computing the "Mid-Way Face"</h2>
+        <p>So the instructions basically broke things down into: Compute Average Shape; Warp Both Faces into Average Shape with Affine Transformations; Blend Colors of Both Faces to Produce Final Mid-Way Face</p>
+        <p>Computing the average was easy enough, just take both points, add together and divide by two. Then the Delaunay is calculated using the function.</p>
+        <p>Next is the affine tranformation, which was done by creating an affine transformation matrix that mapped the triangle in the original image to the average shape one. This was done by filling out the suggested function, <code>computeAffine(tri1_pts, tri2_pts)</code>
+        to fill out the affine function, it's basically the standard affine transformation matrix over a whole bunch of points, or six systems of linear equations cleverly placed and then solved using <code>np.linalg.solve(A,b)</code> this function is applied to every triangle in the original image which warps it from the first -> second face.
+        After both faces are warped to the average shape, the last step is to blend the pixel values to produce the mid-way face. For every pixel inside the triangles, the average of the corresponding pixel values is taken.
+        </p>
+        <img src="Halfway.png" alt="Halfway Image">        
+
+        <h2>Part 3: The Morph Sequence</h2>
+        <p>Now, for the morph sequence, for each frame it's basically the same thing as getting the mid-way face (average shape, warp both, average colors), but it's per-frame.</p>        
+        <img src="morph_sequence.gif" alt="George->Brad">        
+        
+        <h2>Part 4: The "Mean Face" of a Population</h2>
+        <p>I used the FEI dataset, and I chose the subset of the population that had a neutral expression. The Danes set seemed to be broken, and I didn't really feel like annotating and hand-picking all of individuals of a certian group one by one, since that's quite a lot of work.
+            To find the mean, what I did was to basically: compute the average shape in a similar manner to what I did for Part 2; morph all of the faces into the mean shape; accumulate the faces; and then average them
+        </p>
+        <img src="mean_face_neutral.jpg" alt="Mean Neutral"> 
+        <p>Here's the true mean shape:</p>
+        <img src="mean_face_a_b.png" alt="Mean"> 
+
+        <p>Some example gifs of the faces in the dataset being morphed into the average shape, both neutral and smiling (looks kinda awk in some of them)</p>
+        <img src="morph_to_mean_shape_1.gif" alt="Morph 1"> 
+        <img src="morph_to_mean_shape_2.gif" alt="Morph 2"> 
+        <img src="morph_to_mean_shape_3.gif" alt="Morph 3"> 
+        <img src="morph_to_mean_shape_4.gif" alt="Morph 4"> 
+        <img src="morph_to_mean_shape_5.gif" alt="Morph 5"> 
+        <img src="morph_to_mean_shape_6.gif" alt="Morph 6"> 
+        <img src="morph_to_mean_shape_7.gif" alt="Morph 7"> 
+        <img src="morph_to_mean_shape_8.gif" alt="Morph 8"> 
+        <img src="morph_to_mean_shape_9.gif" alt="Morph 9"> 
+        <img src="morph_to_mean_shape_10.gif" alt="Morph 10"> 
+
+        <p>And an example of the mean being warped to someone else's geometry:</p>
+        <img src="mean_to_individual.png" alt="Mean to Individual"> 
+
+        <h2>Part 5: Caricatures: Extrapolating From the Mean</h2> 
+        <p>Caricatures were created by doing something like so: getting the points of the individual and subtracting the mean shape, followed by adding this to the mean shape, multiplied by a factor of two, to have twice their "presence" in the image so to speak.
+            A standard morph later, and we have 2x the presence of their face in their face. See result.
+        </p>
+        <img src="4a.jpg" alt="Person 4a"> 
+        <img src="caricature_4.jpg" alt="Person 4a Caricature"> 
+        <p>Individual #4's pronounced cheeks I suppose round eyes show quite well though here, so I guess that would be a caricature of him.</p>
+
+        <h2>Bells & Whistles: Keanu Over Time:</h2> 
+        <p>I still don't want to use photos of myself since that makes me very very uncomfortable, I found 30 images of Keanu Reeves throughout time and made a morph sequence of them.</p>
+        <img src="keanu_morph_sequence.gif" alt = "Keanu Morphing Through Time">
+    </div>
+
+</body>
+</html>
