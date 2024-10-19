@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CS180 Project 4</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Arial', sans-serif;
+            background-color: #f4f4f9;
+            color: #333;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .content-container {
+            margin: 0 auto;
+            text-align: center;
+        }
+
+        h1, h2, h3 {
+            margin-bottom: 20px;
+            color: #333;
+        }
+
+        h1 {
+            font-size: 2.5em;
+            font-weight: bold;
+        }
+
+        h2 {
+            font-size: 2em;
+            font-weight: 600;
+        }
+
+        h3 {
+            font-size: 1.5em;
+            font-weight: 400;
+            margin-bottom: 30px;
+        }
+
+        p {
+            font-size: 1.1em;
+            line-height: 1.6;
+            margin-bottom: 30px;
+        }
+
+        img {
+            max-width: 100%;
+            height: auto;
+            display: block;
+            margin: 30px auto;
+            border-radius: 8px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        }
+        /* Ripped off of W3 Schools for styling the code */
+        code {
+            font-family: Consolas,"courier new";
+            color: rgb(28, 168, 12);
+            padding: 2px;
+            font-size: 105%;
+        }
+        sup {
+            vertical-align: super;
+            font-size: x-small;
+        }
+
+        @media (max-width: 768px) {
+            .content-container {
+                padding: 0 20px;
+            }
+
+            h1 {
+                font-size: 2em;
+            }
+
+            h2 {
+                font-size: 1.75em;
+            }
+
+            p {
+                font-size: 1em;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="content-container">
+        <h1>CS180 Project 4A</h1>
+        <h2>Image Warping & Mosaicing</h2>
+        <h3>Kevin Yee</h3>
+        <h2>Overview</h2>
+        <p>In this project, we're basically warping images in a similar manner to ProCreate's perspective transform functionality, where it's basically kinda like an art/perspective principle  being played out.
+        </p>
+
+        <h2>Part 1: Shoot and Digitize Pictures</h2>
+        <p>So for this part I bascially just took some screenshots in Minecraft since I didn't want to take pictures in real life.</p>
+        <img src="center.png" alt="Center Minecraft village image">
+        <img src="right.png" alt="Right Minecraft village image">
+
+        <h2>Part 2: Recover Homographies</h2>
+        <p>So this was intresting, basically a giant linear algebra setup and payoff, solving a big 'ol matrix. What I basically did was just setup the matrix, doing something like the following:
+            <code>A.append([x, y, 1, 0, 0, 0, -x_prime * x, -x_prime * y, -x_prime])</code>, as well as the other line starting with 0 0 0,
+            which was done by iterating over the input n-by-2 matrices, and then I used the smallest row of SVD V^T from the matrix (A) that I built up, reshaped it, normalized it, and returned it. I figured SVD would be easier since I could basically
+            "sledgehammer" every matrix that came my way when I used it, no rank-deficient things or anything like that.
+        </p>
+        <img src="MatrixA.JPG" alt="Matrix Image">
+
+        <h2>Part 3: Warp the Images</h2>
+        <p>
+            Using the resultant homography matrix from the previous section, this function basically that, and uses it to create an inverse mapping
+            to calculate where each pixel in the output came from in the input image, with some interpolation if color values are weird. So the workflow is basically:
+            <br>
+            <br>Create coordinate grid of where every pixel is going to go;
+            <br>Convert coordinates into homogenous coordinates (and then normalize back to 2D later);
+            <br>Inverse homography to map each pixel in output image back to corresponding location in input image;
+            <br>Interpolate;
+            <br>And then do a bit of extra processing
+        </p>        
+        <p>I think I should've chosen a few more points or something to fix the weird things on the side but I lost my tab where I had all the correspondences but I don't want to have to find them again</p>
+        <img src="minecraft_no_blend.png" alt="Minecraft images together">        
+        <h3>Image Rectification</h3>
+        <p>So I tried rectifying an image, the same one showed in class the flagellation painting, and I got the following result for the floor</p>
+        <img src = "flagellation.jpg" alt = "flagellation">
+        <img src = "rectification.png" alt = "floor is made of floor.png">
+        <p>I might've misclicked a bit with since I don't have things perfectly aligned.</p>
+        <h2>Part 4:Blend Images into a Moasic</h2>
+        <p>
+            To blend the images, I removed the alpha channel which I think was causing dimensional issues with things huge pain to debug, followed by computing an alpha mask, which is basically
+            something like a weighting of the pixels made dependent on how close it is from the center of the image. So I warp the second image as is usual, followed by the blending of the image, divided
+            into two distinct regions, where it overlaps, and where it doesn't overlap. Where it overlaps, the alpha mask gradient is used, and where it doesn't overlap, only the second image is used. This 
+            was intended to have a smoothing affect. Since the images aren't quite perfectly aligned, there's some ghosting where there's overlap.
+        </p>
+        <img src="minecraft_blend.png" alt="Minecraft images together blended"> 
+        
+    </div>
+
+</body>
+</html>
