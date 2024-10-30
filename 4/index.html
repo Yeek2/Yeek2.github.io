@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CS180 Project 4</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Arial', sans-serif;
+            background-color: #f4f4f9;
+            color: #333;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .content-container {
+            margin: 0 auto;
+            text-align: center;
+        }
+
+        h1, h2, h3 {
+            margin-bottom: 20px;
+            color: #333;
+        }
+
+        h1 {
+            font-size: 2.5em;
+            font-weight: bold;
+        }
+
+        h2 {
+            font-size: 2em;
+            font-weight: 600;
+        }
+
+        h3 {
+            font-size: 1.5em;
+            font-weight: 400;
+            margin-bottom: 30px;
+        }
+
+        p {
+            font-size: 1.1em;
+            line-height: 1.6;
+            margin-bottom: 30px;
+        }
+
+        img {
+            max-width: 100%;
+            height: auto;
+            display: block;
+            margin: 30px auto;
+            border-radius: 8px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        }
+        /* Ripped off of W3 Schools for styling the code */
+        code {
+            font-family: Consolas,"courier new";
+            color: rgb(28, 168, 12);
+            padding: 2px;
+            font-size: 105%;
+        }
+        sup {
+            vertical-align: super;
+            font-size: x-small;
+        }
+
+        @media (max-width: 768px) {
+            .content-container {
+                padding: 0 20px;
+            }
+
+            h1 {
+                font-size: 2em;
+            }
+
+            h2 {
+                font-size: 1.75em;
+            }
+
+            p {
+                font-size: 1em;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="content-container">
+        <h1>CS180 Project 4A</h1>
+        <h2>Image Warping & Mosaicing</h2>
+        <h3>Kevin Yee</h3>
+        <h2>Overview</h2>
+        <p>In this project, we're basically warping images in a similar manner to ProCreate's perspective transform functionality, where it's basically kinda like an art/perspective principle  being played out.
+        </p>
+
+        <h2>Part 1: Shoot and Digitize Pictures</h2>
+        <p>So for this part I bascially just took some screenshots in Minecraft since I didn't want to take pictures in real life. <- that was part A, ended up needing to take some pictures for part B</p>
+        <img src="center.png" alt="Center Minecraft village image">
+        <img src="right.png" alt="Right Minecraft village image">
+
+        <img src="IMG_2303.jpg" alt="Vent 1">
+        <img src="IMG_2304.jpg" alt="Vent 2">
+
+        <img src="IMG_2311.png" alt="BWW 1">
+        <img src="IMG_2312.png" alt="BWWw 2">
+
+        <img src="class1.jpg" alt="Classroom 1">
+        <img src="class2.jpg" alt="Classroom 2">
+
+        <h2>Part 2: Recover Homographies</h2>
+        <p>So this was intresting, basically a giant linear algebra setup and payoff, solving a big 'ol matrix. What I basically did was just setup the matrix, doing something like the following:
+            <code>A.append([x, y, 1, 0, 0, 0, -x_prime * x, -x_prime * y, -x_prime])</code>, as well as the other line starting with 0 0 0,
+            which was done by iterating over the input n-by-2 matrices, and then I used the smallest row of SVD V^T from the matrix (A) that I built up, reshaped it, normalized it, and returned it. I figured SVD would be easier since I could basically
+            "sledgehammer" every matrix that came my way when I used it, no rank-deficient things or anything like that.
+        </p>
+        <img src="MatrixA.JPG" alt="Matrix Image">
+
+        <h2>Part 3: Warp the Images</h2>
+        <p>
+            Using the resultant homography matrix from the previous section, this function basically that, and uses it to create an inverse mapping
+            to calculate where each pixel in the output came from in the input image, with some interpolation if color values are weird. So the workflow is basically:
+            <br>
+            <br>Create coordinate grid of where every pixel is going to go;
+            <br>Convert coordinates into homogenous coordinates (and then normalize back to 2D later);
+            <br>Inverse homography to map each pixel in output image back to corresponding location in input image;
+            <br>Interpolate;
+            <br>And then do a bit of extra processing
+        </p>        
+        <p>I think I should've chosen a few more points or something to fix the weird things on the side but I lost my tab where I had all the correspondences but I don't want to have to find them again</p>
+        <img src="minecraft_no_blend.png" alt="Minecraft images together">        
+        <h3>Image Rectification</h3>
+        <p>So I tried rectifying an image, the same one showed in class the flagellation painting, and I got the following result for the floor</p>
+        <img src = "flagellation.jpg" alt = "flagellation">
+        <img src = "rectification.png" alt = "floor is made of floor.png">
+        <p>I might've misclicked a bit with since I don't have things perfectly aligned.</p>
+        <h2>Part 4:Blend Images into a Moasic</h2>
+        <p>
+            To blend the images, I removed the alpha channel which I think was causing dimensional issues with things huge pain to debug, followed by computing an alpha mask, which is basically
+            something like a weighting of the pixels made dependent on how close it is from the center of the image. So I warp the second image as is usual, followed by the blending of the image, divided
+            into two distinct regions, where it overlaps, and where it doesn't overlap. Where it overlaps, the alpha mask gradient is used, and where it doesn't overlap, only the second image is used. This 
+            was intended to have a smoothing affect. Since the images aren't quite perfectly aligned, there's some ghosting where there's overlap.
+        </p>
+        <img src="minecraft_blend.png" alt="Minecraft images together blended"> 
+        <img src="class1_2.png" alt="Classroom images blended">
+        <img src="vent_mosaic.png" alt="Vent images blended"> 
+        
+        <h1>CS180 Project 4B</h1>
+
+        <h2>Part 1: Corner Detection</h2>
+        <p>
+            So I basically shamelessly stole the provided Harris Interest Point Detector which was provided to us, and used it. The results aren't too interesting because most often they're just a red square.
+            <br>
+            If I understand things correctly, at a high level (from lecture at least), when the professor was explaining it with the moving a square over lines and stuff like that, it's basically detecting where there's a lot of intensity
+            change in multiple directions. The function we have basically just calls the skimage.feature.corner_harris function to get the Harris response for each pixel in the image.
+            Then, using the peak_local_max, it extracts the coords of the local maxima in the Harris response matrix (h) which should be the potential corners in the image.
+        </p>
+        <img src="harris corners.png" alt="harris corners typically"> 
+
+        <h2>Part 2: Adaptive Non-Maximal Suppression</h2>
+        <p>So, Adaptive Non-Maximal Supression: At a high level, I'm inclined to believe that it's something like the following: getting the "best" corners from the Harris set we just ran.
+            The way this is done is something like: Supressing corners that are close to a stronger corner, and then only getting the top dog corners based off of their "supression radius", which tells
+            how far each corner is from a stronger corner that's near it. This ensures that the resultant corners are locally strong, and also spaced out to ensure that not everything is all clustered in one spot.
+            <br>
+            This is done very naively in my code by simply grabbing all of the corners from the Harris corner detection set, iterating over all of them getting the corner strength,
+            and for each corner i, iterate over all other corners and check if corner j is stronger than corner i and also calculate the euclidian distance between them. If this distance is less than the current suppression radius, 
+            it updates the radius for corner i to the calculated distance. This distance is basically the nearest stronger corner that suppresses corner i. 
+            <br>
+            After all that, they're sorted in descending order, and the top n are selected (I chose 500 for more corners).
+        </p>
+
+        <img src="anms_vent.png" alt="ANMS Corners vent"> 
+        <img src="anms_classroom.png" alt="ANMS Corners classroom"> 
+        <img src="anms_bww.png" alt="ANMS Corners bww"> 
+
+        <h2>Part 3: Feature Descriptor</h2>
+        <p>So the feature descriptor basically takes the points and gets a 40x40 patch around them, downsamples it into an 8x8 patch, and then normalizes bias/gain (average value = 0/variance = 1
+            which allows for the patch to be robust to changes in contrast & lighting. It's flattened into a 1D vector (for ease of comparison), and then added to the list of descriptors.
+        </p>
+        <p>See the resultant descriptors, I forgot which this was taken from.</p>
+        <img src="descriptors.png" alt="Some kind of descriptors"> 
+
+        <h2>Part 4: Matching Feature Descriptors</h2>
+
+        <p>
+            To match feature descriptors, the descriptors are compared by identifying pairs with similar characteristics. For each descriptor it finds the indicies of the closest two descriptors
+            based on the smallest and second smallest distances, as the Euclidian distance between each descriptor pair is calculated as well, with the ratio of the nearest & second nearest distances 
+            also calculated. If the ratio is below a specific set threshold, then the feature is a good match. So: calculate all distances between all descriptors, apply ratio test/nearest neighbor, return. 
+        </p>
+
+        <img src="vent_matches.png" alt="Vent matches"> 
+        <img src="classroom_matched.png" alt="Classroom matches"> 
+        <img src="matches_bww.png" alt="BWW matches"> 
+
+        <h2>Part 5: RANSAC & Robust Homography Estimate</h2>
+        <p>
+            Alright, last step: RANSAC. Basic idea: randomly select subsets of point correspondances to estimage a candidate homography matrix; use candidate homography for transform; evaluate how well this candidate fits
+            by counting inliers, points that are transformed within a threshold error; repeat for a bunch of iterations, getting the best homography with the most inliers that fit.
+        </p>
+        <p>Results for RANSAC inliers</p>
+
+        <img src="vent_RANSAC_2.png" alt="Vent RANSAC inliers"> 
+        <img src="classroom_ransac.png" alt="Classroom RANSAC inliers"> 
+        <img src="ransac_bww.png" alt="BWW RANSAC inliers"> 
+
+        <p>And then lastly, the homography. Most of the results aren't quite perfect since I think I might've messed up with taking the photos, but I think they generally show that it works (I hope).</p>
+
+        <img src="vent_stitched.png" alt="Vent stitched"> 
+        <img src="classroom_stitched.png" alt="Classroom stitched"> 
+        <img src="stitched_bww.png" alt="BWW stitched"> 
+
+
+    </div>
+
+</body>
+</html>
