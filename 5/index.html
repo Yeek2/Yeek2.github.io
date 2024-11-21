@@ -1,0 +1,479 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CS180 Project 5</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Arial', sans-serif;
+            background-color: #f4f4f9;
+            color: #333;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .content-container {
+            margin: 0 auto;
+            text-align: center;
+        }
+
+        h1, h2, h3 {
+            margin-bottom: 20px;
+            color: #333;
+        }
+
+        h1 {
+            font-size: 2.5em;
+            font-weight: bold;
+        }
+
+        h2 {
+            font-size: 2em;
+            font-weight: 600;
+        }
+
+        h3 {
+            font-size: 1.5em;
+            font-weight: 400;
+            margin-bottom: 30px;
+        }
+
+        p {
+            font-size: 1.1em;
+            line-height: 1.6;
+            margin-bottom: 30px;
+        }
+
+        img {
+            max-width: 100%;
+            height: auto;
+            display: block;
+            margin: 30px auto;
+            border-radius: 8px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        }
+        /* Ripped off of W3 Schools for styling the code */
+        code {
+            font-family: Consolas,"courier new";
+            color: rgb(28, 168, 12);
+            padding: 2px;
+            font-size: 105%;
+        }
+        sup {
+            vertical-align: super;
+            font-size: x-small;
+        }
+
+        @media (max-width: 768px) {
+            .content-container {
+                padding: 0 20px;
+            }
+
+            h1 {
+                font-size: 2em;
+            }
+
+            h2 {
+                font-size: 1.75em;
+            }
+
+            p {
+                font-size: 1em;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="content-container">
+        <h1>CS180 Project 5</h1>
+        <h2>Image Warping & Mosaicing</h2>
+        <h3>Kevin Yee</h3>
+        <h2>Overview</h2>
+        <p>So in this project, it seems as though we're making our own diffusion models.</p>
+
+        <h2>Part 0: Setup</h2>
+        <p>
+            So for this part I made a HuggingFace account, got my API token, and ran the first few cells to setup and download environment setup things,
+            followed by the generation of a feww images.
+            <br>
+            The first set of images is with num_inference_steps set to 20, and the second set is set to 30.
+        </p>
+        <img src="first gens.JPG" alt="First three generated images 20 steps">
+        <img src="first gen 1.png" alt="First three generated images 30 steps (snowy mountian)">
+        <img src="first gens 2.png" alt="First three generated images 30 steps (man wearing a hat)">
+        <img src="first gen 3.png" alt="First three generated images 30 steps (rocket ship)">
+
+        <p>
+            To me, it seems like the quality of the "man wearing a hat" seemed to substantially increase, going from an ai-esque generated image to what I would call a passable
+            if not somewhat artistically filtered image of a man wearing a hat. The snowy mountian definitley still seems quite stylized in the strange colorization of AI between the two generations,
+            while the rocket ship seems to have marginally improved from a PNG to a flash-game worthy sprite (with extra special booster effects).
+
+            <br> The random seed I'm using for everything is: "137347080577163115"
+        </p>
+
+        <h2>Part 1: Sampling Loops</h2>
+        <h3>1.1 Implementing the Forward Process</h3>
+        <p>
+            For this part, it was basically implementing equation A.2 in the forward function which was basically the following:
+            <br>
+            Get alpha bar (alpha cumulative product), square root it, multiply it by the clean image, and add in the noise component.
+        </p>
+        <img src="noisy250.png" alt="Campanile Noise at 250">
+        <img src="noisy500.png" alt="Campanile Noise at 500">
+        <img src="noisy750.png" alt="Campanile Noise at 750">
+        <h3>1.2 Classical Denoising</h3>
+        <p>
+            I basically ran torchvision.transforms.functional.gaussian_blur over the noisy image, with a kernel size of kernel_size by kernel_size, and a sigma of 1.0.
+        </p>
+        <div style="display: grid; grid-template-columns: repeat(2, 1fr); text-align: center;">
+            <div>
+                <img src="noisy250.png" alt="Noisy 250">
+                <p>Noisy 250</p>
+            </div>
+            <div>
+                <img src="gaussian250.png" alt="Gaussian 250">
+                <p>Gaussian 250</p>
+            </div>
+        
+            <div>
+                <img src="noisy500.png" alt="Noisy 500">
+                <p>Noisy 500</p>
+            </div>
+            <div>
+                <img src="gaussian500.png" alt="Gaussian 500">
+                <p>Gaussian 500</p>
+            </div>
+        
+            <div>
+                <img src="noisy750.png" alt="Noisy 750">
+                <p>Noisy 750</p>
+            </div>
+            <div>
+                <img src="gaussian750.png" alt="Gaussian 750">
+                <p>Gaussian 750</p>
+            </div>
+        
+        </div>
+
+        <h3>1.3 One-Step Denoising</h3>
+        <p>
+            The one step denoising if I understand it correctly and didn't just follow directions, basically takes the estimated noise that was added to the image, and then removes it. It's not quite
+            the same thing as just removing the noise since it only takes the estimated noise from the trained UNet and then removes the predicted/estimated noise.
+        </p>
+        <div style="display: grid; grid-template-columns: repeat(2, 1fr); text-align: center;">
+            <div>
+                <img src="noisy250.png" alt="Noisy 250">
+                <p>Noisy 250</p>
+            </div>
+            <div>
+                <img src="onestep250.png" alt="Gaussian 250">
+                <p>Gaussian 250</p>
+            </div>
+        
+            <div>
+                <img src="noisy500.png" alt="Noisy 500">
+                <p>Noisy 500</p>
+            </div>
+            <div>
+                <img src="onestep500.png" alt="Gaussian 500">
+                <p>Gaussian 500</p>
+            </div>
+        
+            <div>
+                <img src="noisy750.png" alt="Noisy 750">
+                <p>Noisy 750</p>
+            </div>
+            <div>
+                <img src="onestep750.png" alt="Gaussian 750">
+                <p>Gaussian 750</p>
+            </div>
+        
+        </div>
+
+        <h3>1.4 Iterative Denoising</h3>
+        <p>
+            So iterative denoising: I'm pretty sure what we're doing is something along the lines of getting the UNet to predict the noise at each timestep, and then running it a whole bunch of times.
+            Noise is iteratively added to the image, follwed by iterative denoising with the UNet.
+        </p>
+        <img src="noisy690.png" alt="Noisy 690">
+        <p>t = 690</p>
+        <img src="noisy540.png" alt="Noisy 540">
+        <p>t = 540</p>
+        <img src="noisy390.png" alt="Noisy 390">
+        <p>t = 390</p>
+        <img src="noisy240.png" alt="Noisy 240">
+        <p>t = 240</p>
+        <img src="noisy90.png" alt="Noisy 90">
+        <p>t = 90</p>
+        <img src="iterative_denoised.png" alt="Iteratively Denoised">
+        <p>Iteratively Denoised dCampanile</p>
+        <img src="one_step_denoised.png" alt="One Step Denoised">
+        <p>One Step Denoised Campanile</p>
+        <img src="gaussian_denoised.png" alt="Gaussian Denoised">
+        <p>Gaussian Blurred Campanile</p>
+
+        <h3>1.5 Diffusion Model Sampling</h3>
+        <p>
+            So this part was basically taking in random noise from scratch instead of adding noise to an image, and generating images from there. i_start = 0 & just send it with random noise from torch.randn.
+        </p>
+
+        <img src="diffusion_sample1.png" alt="Diffusion Sample 1">
+        <img src="diffusion_sample2.png" alt="Diffusion Sample 2">
+        <img src="diffusion_sample3.png" alt="Diffusion Sample 3">
+        <img src="diffusion_sample4.png" alt="Diffusion Sample 4">
+        <img src="diffusion_sample5.png" alt="Diffusion Sample 5">
+
+        <h3>1.6 Classifier-Free Guidance</h3>
+        <p>
+            So for this part, conditional and unconditional noise is estimated with a fancy formula, epsilon_conditional and epsilon_unconditional. It takes the unconditional, and adds the difference of the conditional and unconditional multiplied by a gamma factor,
+            or the strength of the CFG. Setting the gamma makes the image quality go brrr apparantly. 
+        </p>
+
+        <img src="CFG1.png" alt="CFG Sample 1">
+        <img src="CFG2.png" alt="CFG Sample 2">
+        <img src="CFG3.png" alt="CFG Sample 3">
+        <img src="CFG4.png" alt="CFG Sample 4">
+        <img src="CFG5.png" alt="CFG Sample 5">
+
+        <h3>1.7 Image-to-Image Translation</h3>
+        <p>
+            So for this part, we add noise to the original image, and then iteratively denoise with CFG. More noise = bigger edit/more hallucinations/more space to be creative.
+        </p>
+        
+        <br>
+        <p>Coit Tower</p>
+        <img src="coit_tower_edit_1.png" alt="Coit Tower Edit 1">
+        <p>Noise Level 1</p>
+        <img src="coit_tower_edit_3.png" alt="Coit Tower Edit 3">
+        <p>Noise Level 3</p>
+        <img src="coit_tower_edit_5.png" alt="Coit Tower Edit 5">
+        <p>Noise Level 5</p>
+        <img src="coit_tower_edit_7.png" alt="Coit Tower Edit 7">
+        <p>Noise Level 7</p>
+        <img src="coit_tower_edit_10.png" alt="Coit Tower Edit 10">
+        <p>Noise Level 10</p>
+        <img src="coit_tower_edit_20.png" alt="Coit Tower Edit 20">
+        <p>Noise Level 20</p>
+        <img src="coit_tower.png" alt="Coit Tower OG">
+        <br>
+        <p>Golden Gate</p>
+        <img src="golden_gate_edit_1.png" alt="Golden Gate Edit 1">
+        <p>Noise Level 1</p>
+        <img src="golden_gate_edit_3.png" alt="Golden Gate Edit 3">
+        <p>Noise Level 3</p>
+        <img src="golden_gate_edit_5.png" alt="Golden Gate Edit 5">
+        <p>Noise Level 5</p>
+        <img src="golden_gate_edit_7.png" alt="Golden Gate Edit 7">
+        <p>Noise Level 7</p>
+        <img src="golden_gate_edit_10.png" alt="Golden Gate Edit 10">
+        <p>Noise Level 10</p>
+        <img src="golden_gate_edit_20.png" alt="Golden Gate Edit 20">
+        <p>Noise Level 20</p>
+        <img src="golden_gate.jpg" alt="Golden Gate OG">
+        <br>
+        <p>Campanile</p>
+        <img src="campanile_edit_1.png" alt="Campanile Edit 1">
+        <p>Noise Level 1</p>
+        <img src="campanile_edit_3.png" alt="Campanile Edit 3">
+        <p>Noise Level 3</p>
+        <img src="campanile_edit_5.png" alt="Campanile Edit 5">
+        <p>Noise Level 5</p>
+        <img src="campanile_edit_7.png" alt="Campanile Edit 7">
+        <p>Noise Level 7</p>
+        <img src="campanile_edit_10.png" alt="Campanile Edit 10">
+        <p>Noise Level 10</p>
+        <img src="campanile_edit_20.png" alt="Campanile Edit 20">
+        <p>Noise Level 20</p>
+        <img src="campanile.png" alt="Campanile OG">
+
+        <h3>1.7.1 Editing Hand-Drawn and Web Images</h3>
+        <p>
+            The hand drawn section I guess is more or less the same, where we try to bring the poorly drawn cursor images back into the "a high quality photo" manifold space.
+        </p>
+        <br>
+        <p>Avocado (Internet Image)</p>
+        <img src="avocado_from_web_1.png" alt="Avocado Level 1">
+        <p>Noise Level 1</p>
+        <img src="avocado_from_web_3.png" alt="Avocado Level 3">
+        <p>Noise Level 3</p>
+        <img src="avocado_from_web_5.png" alt="Avocado Level 5">
+        <p>Noise Level 5</p>
+        <img src="avocado_from_web_7.png" alt="Avocado Level 7">
+        <p>Noise Level 7</p>
+        <img src="avocado_from_web_10.png" alt="Avocado Level 10">
+        <p>Noise Level 10</p>
+        <img src="avocado_from_web_20.png" alt="Avocado Level 20">
+        <p>Noise Level 20</p>
+        <img src="avocado og.png" alt="Avocado Original">
+        <br>
+        <p>Smiley Face Drawing</p>
+        <img src="smiley 1.png" alt="Smiley Level 1">
+        <p>Noise Level 1</p>
+        <img src="smiley 2.png" alt="Smiley Level 3">
+        <p>Noise Level 3</p>
+        <img src="smiley 5.png" alt="Smiley Level 5">
+        <p>Noise Level 5</p>
+        <img src="smiley 7.png" alt="Smiley Level 7">
+        <p>Noise Level 7</p>
+        <img src="smiley 10.png" alt="Smiley Level 10">
+        <p>Noise Level 10</p>
+        <img src="smiley 20.png" alt="Smiley Level 20">
+        <p>Noise Level 20</p>
+        <br>
+        <p>House Drawing</p>
+        <img src="house draw 1.png" alt="House Draw 1">
+        <p>Noise Level 1</p>
+        <img src="house draw 3.png" alt="House Draw 3">
+        <p>Noise Level 3</p>
+        <img src="house draw 5.png" alt="House Draw 5">
+        <p>Noise Level 5</p>
+        <img src="house draw 7.png" alt="House Draw 7">
+        <p>Noise Level 7</p>
+        <img src="house draw 10.png" alt="House Draw 10">
+        <p>Noise Level 10</p>
+        <img src="house draw 20.png" alt="House Draw 20">
+        <p>Noise Level 20</p>
+        <img src="house og.png" alt="House Original">
+        <p>Original Drawing</p>
+
+        <h3>1.7.2 Inpainting</h3>
+
+        <p>
+            So for inpainting, there's a mask of areas 0 & 1, where 0 is the area to keep unchanged, and 1 is the area to inpaint/replace with new information.
+            The mask is applied to the noisy image xt at each timestep t to ensure that areas outside of t he mask stay the same.
+            <br>
+            At each timestep I basically followed the equation 0 * xt + (1- 0)forward(x original t)
+        </p>
+
+        <br>
+        <img src="inpainted campanile.png" alt="Inpainted Campanile">
+        <p>Campanile</p>
+        <img src="inpainted coit.png" alt="Inpainted Coit Tower">
+        <p>Coit Tower</p>
+        <img src="inpainted golden gate.png" alt="Inpainted Golden Gate">
+        <p>Golden Gate</p>
+
+        <h3>1.7.3 Text-Conditional Image-to-Image Translation</h3>
+
+        <p>
+            Alright, same thing as the SDEdit, but instead with the prompt of "a rocket ship" instead, so that a rocket ship looks more and more like the campanile (and a few other landmarks as well).
+        </p>
+
+        <p>Campanile</p>
+        <img src="conditional campanile 1.png" alt="Conditional Campanile 1">
+        <p>Noise Level 1</p>
+        <img src="conditional campanile 3.png" alt="Conditional Campanile 3">
+        <p>Noise Level 3</p>
+        <img src="conditional campanile 5.png" alt="Conditional Campanile 5">
+        <p>Noise Level 5</p>
+        <img src="conditional campanile 7.png" alt="Conditional Campanile 7">
+        <p>Noise Level 7</p>
+        <img src="conditional campanile 10.png" alt="Conditional Campanile 10">
+        <p>Noise Level 10</p>
+        <img src="conditional campanile 20.png" alt="Conditional Campanile 20">
+        <p>Noise Level 20</p>
+        <img src="campanile.png" alt="Conditional Campanile Original">
+        <p>Campanile</p>
+        <br>
+        <p>Coit Tower</p>
+        <img src="conditional coit 1.png" alt="Conditional Coit 1">
+        <p>Noise Level 1</p>
+        <img src="conditional coit 3.png" alt="Conditional Coit 3">
+        <p>Noise Level 3</p>
+        <img src="conditional coit 5.png" alt="Conditional Coit 5">
+        <p>Noise Level 5</p>
+        <img src="conditional coit 7.png" alt="Conditional Coit 7">
+        <p>Noise Level 7</p>
+        <img src="conditional coit 10.png" alt="Conditional Coit 10">
+        <p>Noise Level 10</p>
+        <img src="conditional coit 20.png" alt="Conditional Coit 20">
+        <p>Noise Level 20</p>
+        <img src="coit_tower.png" alt="Conditional Coit Original">
+        <p>Coit</p>
+        <br>
+        <p>Golden Gate</p>
+        <img src="conditional golden gate 1.png" alt="Conditional Golden Gate 1">
+        <p>Noise Level 1</p>
+        <img src="conditional golden gate 3.png" alt="Conditional Golden Gate 3">
+        <p>Noise Level 3</p>
+        <img src="conditional golden gate 5.png" alt="Conditional Golden Gate 5">
+        <p>Noise Level 5</p>
+        <img src="conditional golden gate 7.png" alt="Conditional Golden Gate 7">
+        <p>Noise Level 7</p>
+        <img src="conditional golden gate 10.png" alt="Conditional Golden Gate 10">
+        <p>Noise Level 10</p>
+        <img src="conditional golden gate 20.png" alt="Conditional Golden Gate 20">
+        <p>Noise Level 20</p>
+        <img src="golden_gate.jpg" alt="Conditional Golden Gate Original">
+        <p>Golden Gate</p>
+
+        <h3>1.8 Visual Anagrams</h3>
+
+        <p>
+            For this part, we start with a noisy image, and then the noise estimate for epsilon1 for rightside up with the first prompt p1 is calculated,
+            then the noisy image is flipped upside-down, and the noise estimate is computed for the upside-down version. And then the noises are averaged (epsilon1 + epsilon2) / 2, and then this epsilon average is
+            used to complete the reverse diffusion step.
+        </p>
+
+        <img src="campfire_oldman.png" alt="Campfire">
+        <p>Campfire</p>
+        <img src="campfire.png" alt="Old Man">
+        <p>Old Man</p>
+        <img src="campfire_snowy_mountian - Copy.png" alt="Snowy Mountian">
+        <p>Snowy Mountian Village</p>
+        <img src="campfire_snowy_mountian.png" alt="Campfire">
+        <p>Campfire</p>
+        <img src="old_man_mountian_village - Copy.png" alt="Mountian Village">
+        <p>Snowy Mountian Village</p>
+        <img src="old_man_mountian_village.png" alt="Old Man">
+        <p>Old Man</p>
+
+        <h3>1.9 Hybrid Images</h3>
+
+        <p>
+            Factorized diffusion for things: two noise estimates, epsilon1 will have a lowpass filter to retain the low frequency, while epsilon2 gets a highpass filter to maintain the high frequencies. These two get added
+            and are used as the sum epsilon (or noise estimate). I ran this a bunch of times and I didn't get super great results for any of them. I think the better results come out of things that are more abstract or perhaps have
+            a bit more varience in the manifold or something like that, since alot of times I just got a landscape with a skull slapped in the middle of it.
+        </p>
+
+        <img src="hybrid_image_skull_upsampled.png" alt="Skull Waterfall">
+        <p>Skull Waterfall</p>
+        <img src="hybrid_image_actual_coast_snow.png" alt="Old Man">
+        <p>Coast Snowy</p>
+        <img src="pencil_rocket.png" alt="Pencil Rocket">
+        <p>Pencil Rocket</p>
+
+        <h2>Part B: </h2>
+        <p>
+            So for this part, a denoiser as a UNet was implemented, which mostly consisted of carefully reading the diagram and documentation of the blocks and implementing them as a class.
+            Conv blocks changing the channel dimension, DownConv which downsampled, UpConv which upsampled DFlatten which takes a 7x7 -> 1x1 tensor, Unflatten which upsamples from 1x1 -> 7x7, & Concat which channel-wise concatentats tensors.
+            <br>
+            To train the model, we were given an equation to optimize overe an L2 loss, where noise is applied dynamically during the training set, and then the images are passed through the UNet for predictions,
+            followed by a MSE calclation (equation) between the predicted clean image and the actual clean image. The gradient of the loss wrt the model;s parameters is calculated, and then the model's parameters are updated.
+            This is repeated for batches & epochs.
+        </p>
+
+        <img src="varying mnist.png" alt="Figure 3">
+        <img src="epoch1.png" alt="Epoch 1">
+        <p>Epoch 1</p>
+        <img src="epoch5.png" alt="Epoch 5">
+        <p>Epoch 5</p>
+        <img src="training_loss_curve.png" alt="Training Loss Curve">
+        <img src="cleaned minst.png" alt="Varying Noise levels">
+
+        
+    </div>
+
+</body>
+</html>
